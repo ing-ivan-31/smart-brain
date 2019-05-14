@@ -31,9 +31,35 @@ class App extends Component {
         super();
         this.state = {
             input : '',
-            imageUrl: ''
+            imageUrl: '',
+            boxes: []
         }
     }
+
+    calculateFaceLocation = (data) => {
+        const regions =  data.outputs[0].data.regions;
+        const boxes = regions.map( obj => obj.region_info.bounding_box );
+
+        const image = document.getElementById('inputImage');
+        const width =  Number(image.width);
+        const height = Number(image.height);
+
+        const coordenates = boxes.map (obj => {
+            return {
+                leftCol : obj.left_col * width,
+                topRow: obj.top_row * height,
+                rightCol:  width - (obj.right_col * width),
+                bottomRow: height - (obj.bottom_row * height)
+            };
+        });
+
+        return coordenates;
+    };
+
+    displayFaceBox = (boxes)  => {
+        console.log(boxes);
+       this.setState({boxes : boxes});
+    };
 
     onInputChange = (event) => {
         this.setState({
@@ -50,15 +76,8 @@ class App extends Component {
             .predict(
                 Clarifai.FACE_DETECT_MODEL,
                 this.state.input)
-            .then(
-            function(response) {
-                console.log(response.outputs)
-                // do something with response
-            },
-            function(err) {
-                // there was an error
-            }
-        );
+            .then(response =>  this.displayFaceBox( this.calculateFaceLocation(response) ))
+                .catch(err => console.log(err));
     };
 
     render() {
@@ -69,7 +88,7 @@ class App extends Component {
                 <Logo />
                 <Rank />
                 <ImageLinkFrom onInputChange={ this.onInputChange}  onButtonSubmit={ this.onSubmit} />
-                <FaceRecognition imageUrl = {this.state.imageUrl}  />
+                <FaceRecognition imageUrl = {this.state.imageUrl}  boxes ={this.state.boxes}  />
             </div>
         );
     }
